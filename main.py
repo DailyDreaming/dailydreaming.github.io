@@ -52,6 +52,7 @@ def get_data(xlsx_file: str):
                 data_staged += 1
             if row[8] != 'Not Yet Started':
                 protocols += 1
+
     return pd.DataFrame(d)
 
 
@@ -73,6 +74,14 @@ def generate_figure(df):
     )
     fig.update_yaxes(range=[0, 20])
     fig.update_traces(textposition='outside')
+    fig.update_layout(legend=dict(
+        orientation="h",
+        entrywidth=100,
+        yanchor="bottom",
+        y=1.02,
+        xanchor="right",
+        x=1
+    ))
     return fig
 
 
