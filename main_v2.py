@@ -46,7 +46,12 @@ def get_data(xlsx_file: str):
             print(current_group)
         if row[1] and row[1].startswith('ADGC '):
             # new working group seen; all following rows underneath are associated with this group
-            current_group = row[1].split('-')[1].strip()
+            print(row)
+            print(row[1].split('–'))
+            if '–' in row[1]:
+                current_group = row[1].split('–')[1].strip()
+            else:
+                current_group = row[1].split('-')[1].strip()
             d['Working Groups'].append(current_group)
         else:
             print(row)
