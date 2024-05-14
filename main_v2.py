@@ -5,14 +5,16 @@ from jinja2 import Template
 from openpyxl import load_workbook
 
 
-stages = ['Data Generated', 'Data Formatted', 'Data Staged', 'Protocols.io']
 d = {
     'Working Groups': [],
-    'Data Generated': [],
-    'Data Formatted': [],
+    'Expected Datasets': [],
+    'Data Staging Begun': [],
     'Data Staged': [],
-    'Protocols.io': []
+    'Protocols.io Begun': [],
+    'Protocols.io Completed': []
 }
+stages = [k for k in list(d.keys())[1:]]
+print(stages)
 
 
 def get_data(xlsx_file: str):
@@ -23,36 +25,49 @@ def get_data(xlsx_file: str):
     wb = load_workbook(xlsx_file)
     ws = wb.active
 
-    data_generated = 0
-    data_formatted = 0
+    not_yet_begun = 0
+    data_staging_begun = 0
     data_staged = 0
-    protocols = 0
+    protocols_begun = 0
+    protocols_completed = 0
 
-    for row in ws.iter_rows(min_row=7, max_col=12, max_row=28, values_only=True):
+    for row in ws.iter_rows(min_row=7, max_col=12, max_row=100, values_only=True):
+        if row[1] and row[1].startswith('ADGC ') and len(d['Working Groups']) != len(d['Expected Datasets']):
+            # reset all of the data from the previous group
+            d['Expected Datasets'].append(not_yet_begun)
+            not_yet_begun = 0
+            d['Data Staging Begun'].append(data_staging_begun)
+            data_staging_begun = 0
+            d['Data Staged'].append(data_staged)
+            data_staged = 0
+            d['Protocols.io Begun'].append(protocols_begun)
+            protocols_begun = 0
+            d['Protocols.io Completed'].append(protocols_completed)
+            protocols_completed = 0
+            print(current_group)
         if row[1] and row[1].startswith('ADGC '):
             # new working group seen; all following rows underneath are associated with this group
             current_group = row[1].split('-')[1].strip()
             d['Working Groups'].append(current_group)
-
-            # reset all of the data from the previous group
-            d['Data Generated'].append(data_generated)
-            data_generated = 0
-            d['Data Formatted'].append(data_formatted)
-            data_formatted = 0
-            d['Data Staged'].append(data_staged)
-            data_staged = 0
-            d['Protocols.io'].append(protocols)
-            protocols = 0
         else:
+            print(row)
             # rows under their working groups are parsed for the stage of progress they are at
-            if row[2] != 'Not Yet Started':
-                data_generated += 1
-            if row[6] != 'Not Yet Started':
-                data_formatted += 1
+            if row[3] == 'Not Yet Started':
+                not_yet_begun += 1
+            elif row[3] == 'Submitted':
                 data_staged += 1
-            if row[8] != 'Not Yet Started':
-                protocols += 1
+            elif row[3]:
+                data_staging_begun += 1
 
+            if row[10] and row[10] == 'Submitted':
+                protocols_completed += 1
+            elif row[10] and row[10] != 'Not Yet Started':
+                protocols_begun += 1
+    d['Expected Datasets'].append(not_yet_begun)
+    d['Data Staging Begun'].append(data_staging_begun)
+    d['Data Staged'].append(data_staged)
+    d['Protocols.io Begun'].append(protocols_begun)
+    d['Protocols.io Completed'].append(protocols_completed)
     return pd.DataFrame(d)
 
 
@@ -62,13 +77,13 @@ def generate_figure(df):
         data_frame=df,
         x='Working Groups',
         y=stages,
-        text=[stages for i in range(4)], text_auto=True,
+        text=[stages for i in range(len(df))], text_auto=True,
         opacity=0.9,
         orientation='v',
         barmode='group',
         title='UCSC Data Submission Tracker',
         labels={
-            'value': 'Files Submitted',
+            'value': 'Datasets',
             'variable': 'Processing Stage'
         }
     )
@@ -76,7 +91,7 @@ def generate_figure(df):
     fig.update_traces(textposition='outside')
     fig.update_layout(legend=dict(
         orientation="h",
-        entrywidth=100,
+        entrywidth=140,
         yanchor="bottom",
         y=1.02,
         xanchor="right",
@@ -102,7 +117,7 @@ def generate_website(fig):
 
 
 def main():
-    data = get_data(xlsx_file='data/SSPsyGene_Data_Tracker_v1.xlsx')
+    data = get_data(xlsx_file='data/SSPsyGene_Data_Tracker_v2.xlsx')
     fig = generate_figure(data)
     generate_website(fig)
 
