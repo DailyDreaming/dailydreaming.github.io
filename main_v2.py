@@ -13,8 +13,7 @@ d = {
     'Protocols.io Begun': [],
     'Protocols.io Completed': []
 }
-stages = [k for k in list(d.keys())[1:]]
-print(stages)
+stages = list(d.keys())[1:]
 
 
 def get_data(xlsx_file: str):
